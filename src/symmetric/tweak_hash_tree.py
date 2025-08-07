@@ -1,5 +1,5 @@
 from typing import List
-from symmetric.tweak_hash.sha import SHA3TweakableHash
+from .tweak_hash.sha import SHA3TweakableHash
 class MerkleTree:
     def __init__(self, leaves: List[bytes], hash_fn: SHA3TweakableHash, pub_seed: bytes):
         self.hash_fn = hash_fn
