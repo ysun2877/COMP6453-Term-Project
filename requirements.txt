@@ -1,0 +1,1 @@
+PySNARK @ git+https://github.com/meilof/pysnark@02eb721d7327ced1328783c820b25d5e39575dbc
