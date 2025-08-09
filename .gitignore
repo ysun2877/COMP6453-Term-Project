@@ -1,1 +1,5 @@
+# Ignore python virtual environment directory
 venv/
+
+# Don't sync npm packages
+node_modules/
