@@ -10,7 +10,8 @@ from ..lib import MESSAGE_LENGTH
 
 class EncodingError(Exception):
     """Encoding failed after MAX_TRIES."""
-    pass
+    def __init__(self, message):
+        super().__init__(message)
 
 # ─── Type variables for parameters & randomness ─────────────────────────────────
 # 1) Define a simple Protocol for “serializable” objects.
