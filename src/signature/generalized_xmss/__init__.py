@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass
-from typing import Type, List
+from typing import Type, List, Tuple
 
 from ...signature import SignatureScheme, SigningError
 from ...inc_encoding import IncomparableEncoding
@@ -41,7 +41,7 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
     def key_gen(cls,
                 activation_epoch: int,
                 num_active_epochs: int
-                ) -> (GeneralizedXMSSPublicKey, GeneralizedXMSSSecretKey):
+                ) -> Tuple[GeneralizedXMSSPublicKey, GeneralizedXMSSSecretKey]:
         lifetime = 1 << cls.LOG_LIFETIME
         assert activation_epoch + num_active_epochs <= lifetime, (
             "Key gen: activation_epoch + num_active_epochs exceed lifetime"

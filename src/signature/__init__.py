@@ -19,15 +19,23 @@ SG = TypeVar("SG", bound=Serializable)
 
 class SigningError(Exception):
     """Base class for all signature‐scheme errors."""
-    pass
+    INVALID_MESSAGE_LENGTH = "Invalid message length"
+    UNLUCKY_FAILURE = "Unlucky failure"
+
+    def __init__(self, message):
+        super().__init__(message)
+
 
 class InvalidMessageLength(SigningError):
     """Raised if `message` is not exactly MESSAGE_LENGTH bytes."""
-    pass
+    def __init__(self):
+        super().__init__(SigningError.INVALID_MESSAGE_LENGTH)
+
 
 class UnluckyFailure(SigningError):
     """Raised if signing fails after all random retries."""
-    pass
+    def __init__(self):
+        super().__init__(SigningError.UNLUCKY_FAILURE)
 
 
 # ─── SignatureScheme trait → Python ABC ──────────────────────────────────────────
