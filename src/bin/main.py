@@ -11,7 +11,7 @@ from typing import Callable, Tuple
 
 # Import the Poseidon instantiations (factories) previously translated
 # Adjust the import path to your package layout as needed.
-from signature.generalized_xmss.instantiations_poseidon import (
+from ..signature.generalized_xmss.instantiations_poseidon import (
     SIGWinternitzLifetime18W1, SIGWinternitzLifetime18W2, SIGWinternitzLifetime18W4, SIGWinternitzLifetime18W8,
     SIGTargetSumLifetime18W1NoOff, SIGTargetSumLifetime18W2NoOff, SIGTargetSumLifetime18W4NoOff, SIGTargetSumLifetime18W8NoOff,
     SIGWinternitzLifetime20W1, SIGWinternitzLifetime20W2, SIGWinternitzLifetime20W4, SIGWinternitzLifetime20W8,
