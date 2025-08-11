@@ -9,9 +9,7 @@ import hashlib
 import os
 import math
 
-from ...lib import MESSAGE_LENGTH
-from ..tweak_hash import TWEAK_SEPARATOR_FOR_MESSAGE_HASH 
-
+from ...lib import MESSAGE_LENGTH, TWEAK_SEPARATOR_FOR_MESSAGE_HASH
 
 # BabyBear prime modulus (Plonky3 BabyBear): 2^31 - 2^27 + 1
 P_BABYBEAR = 2_013_265_921

@@ -1,97 +1,53 @@
-import hashlib
-from typing import List
+# Translation of `src/inc_encoding/target_sum.rs` to Python.
+# Incomparable Encoding based on a target-sum constraint, parameterized by a MessageHash.
+#
+# Note: The target sum parameter affects the *signing/search procedure* (how preimages are found)
+# rather than the deterministic encoding function. The encoding output here is exactly the
+# chunk vector produced by the underlying message hash.
 
-# Use the unified error type defined in inc_encoding/__init__.py
-from . import EncodingError
+from __future__ import annotations
+from dataclasses import dataclass
+from typing import List, Any
 
+from ..symmetric.message_hash import MessageHash
 
-class TargetSumWinternitzEncoding:
+@dataclass(frozen=True)
+class TargetSumEncoding:
     """
-    Target-sum variant of Winternitz-style digit encoding.
+    Python counterpart of the Rust const-generic
+    `TargetSum<MH, TARGET_SUM>`.
 
-    Parameters
-    ----------
-    v : int
-        Number of digits to output.
-    w_exp : int
-        log2(base). The digit base is base = 2**w_exp.
-    target : int
-        The exact sum all digits must add up to.
-
-    Notes
-    -----
-    `encode()` is the strict version: it maps v bytes to digits and requires the
-    exact sum to match `target`, otherwise raises EncodingError.
-
-    `encode_with_last_digit_adjustment()` is a pragmatic helper that fixes only
-    the last digit if possible so the sum equals `target`.
+    - `message_hash`: an instance implementing MessageHash; its outputs are the message chunks.
+    - `target_sum`: integer parameter used by the signer/prover algorithm (kept for parity).
     """
+    message_hash: MessageHash
+    target_sum: int
 
-    def __init__(self, v: int, w_exp: int, target: int):
-        self.v = v
-        self.base = 1 << w_exp
-        self.target = target
+    @property
+    def BASE(self) -> int:
+        return int(getattr(self.message_hash, "BASE"))
 
-    def encode(self, message: bytes) -> List[int]:
+    @property
+    def DIMENSION(self) -> int:
+        return int(getattr(self.message_hash, "DIMENSION"))
+
+    def apply(self, parameter: Any, epoch: int, randomness: Any, message: bytes) -> List[int]:
         """
-        Strict target-sum encoding.
-
-        Steps
-        -----
-        1) Compute digest = SHAKE128(message).digest(v)
-        2) Map each byte to a digit via x_i = byte % base
-        3) Require sum(x) == target
-
-        Returns
-        -------
-        List[int]
-            A list of length v with digits in [0, base-1].
-
-        Raises
-        ------
-        EncodingError
-            If sum(x) != target.
+        Return the base-`BASE` digit vector produced by the underlying message hash.
+        The target sum is *not* enforced here; it is used during signing to guide the search.
         """
-        digest = hashlib.shake_128(message).digest(self.v)
-        x = [b % self.base for b in digest]
-        if sum(x) != self.target:
-            raise EncodingError("Sum mismatch")
-        return x
+        chunks = self.message_hash.apply(parameter, epoch, randomness, message)
+        # Sanity: range check
+        base = self.BASE
+        assert len(chunks) == self.DIMENSION, "Target Sum Encoding: wrong number of chunks from message hash"
+        for c in chunks:
+            assert 0 <= c < base, "Target Sum Encoding: chunk out of range"
+        return chunks
 
-    def encode_with_last_digit_adjustment(self, message: bytes) -> List[int]:
-        """
-        Adjust the last digit only if it keeps the digit in range and achieves the target sum.
-
-        Logic
-        -----
-        - Compute the first v-1 digits as x_i = byte % base.
-        - Let s = sum(x_0, ..., x_{v-2}). Set x_{v-1} = target - s.
-        - If 0 <= x_{v-1} < base, return the vector; otherwise raise.
-
-        Returns
-        -------
-        List[int]
-            A list of length v with digits in [0, base-1].
-
-        Raises
-        ------
-        EncodingError
-            If v <= 0, or the required last digit is out of range.
-        """
-        if self.v <= 0:
-            raise EncodingError("v must be positive")
-
-        if self.v == 1:
-            last = self.target
-            if 0 <= last < self.base:
-                return [last]
-            raise EncodingError("Target is out of range for a single digit")
-
-        digest = hashlib.shake_128(message).digest(self.v - 1)
-        x = [b % self.base for b in digest]
-        s = sum(x)
-        last = self.target - s
-        if 0 <= last < self.base:
-            x.append(last)
-            return x
-        raise EncodingError("Cannot satisfy target with single-digit adjustment")
+    def internal_consistency_check(self):
+        # base and dimension must not be too large
+        assert self.BASE <= (1 << 8), "Target Sum Encoding: Base must be at most 2^8"
+        assert self.DIMENSION <= (1 << 8), "Target Sum Encoding: Dimension must be at most 2^8"
+        # also check internal consistency of message hash
+        if hasattr(self.message_hash, "internal_consistency_check"):
+            self.message_hash.internal_consistency_check()

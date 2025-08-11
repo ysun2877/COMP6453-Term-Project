@@ -1,69 +1,76 @@
-import hashlib
-import math
+# Translation of `src/inc_encoding/basic_winternitz.rs` to Python.
+# Incomparable Encoding based on the basic Winternitz scheme.
+
+from __future__ import annotations
+from dataclasses import dataclass
 from typing import List
 
-class EncodingError(Exception):
-    pass
-class BasicWinternitzEncoding:
+from ..symmetric.message_hash import MessageHash 
+
+@dataclass(frozen=True)
+class WinternitzEncoding:
     """
-    Winternitz encoding:
-      - chunk size = CHUNK_SIZE = w_exp
-      - BASE = 1 << CHUNK_SIZE
-      - DIMENSION = n0 + n1, where n1 covers the checksum bits
+    Python counterpart of the Rust const-generic
+    `BasicWinternitz<MH, CHUNK_SIZE, NUM_CHUNKS_CHECKSUM>`.
+
+    - `message_hash`: an instance implementing MessageHash; its outputs are the message chunks.
+    - `chunk_size`: one of {1,2,4,8}. Base = 2**chunk_size.
+    - `num_checksum_chains`: number of checksum chunks appended to the message chunks.
     """
+    message_hash: MessageHash
+    chunk_size: int
+    num_checksum_chains: int
 
-    VALID_CHUNK_SIZES = {1, 2, 4, 8}
-    MH_BASE = 256  # SHAKE-128 outputs bytes ∈ [0,255]
+    @property
+    def BASE(self) -> int:
+        return 1 << self.chunk_size
 
-    @staticmethod
-    def internal_consistency_check(n0: int, w_exp: int):
-        # chunk size must be 1, 2, 4, or 8
-        if w_exp not in BasicWinternitzEncoding.VALID_CHUNK_SIZES:
-            raise ValueError("Winternitz Encoding: Chunk Size must be 1, 2, 4, or 8")
+    @property
+    def NUM_CHAINS(self) -> int:
+        # number of message chains equals MH.DIMENSION
+        return int(getattr(self.message_hash, "DIMENSION"))
 
-        base = 1 << w_exp
-        # base must be at most 2^8
-        if w_exp > 8 or base > BasicWinternitzEncoding.MH_BASE:
-            raise ValueError("Winternitz Encoding: Base must be at most 2^8")
+    @property
+    def DIMENSION(self) -> int:
+        return self.NUM_CHAINS + self.num_checksum_chains
 
-        # compute DIMENSION = n0 + n1
-        checksum_bits = (n0 * (base - 1)).bit_length()
-        n1 = math.ceil(checksum_bits / w_exp)
-        dimension = n0 + n1
+    def _checksum_chunks(self, msg_chunks: List[int]) -> List[int]:
+        """Compute the Winternitz checksum in base `BASE` with fixed length `num_checksum_chains` (LSB-first)."""
+        base_minus_1 = self.BASE - 1
+        s = sum(base_minus_1 - c for c in msg_chunks)
+        cs: List[int] = []
+        for _ in range(self.num_checksum_chains):
+            cs.append(s % self.BASE)
+            s //= self.BASE
+        return cs
 
-        # dimension must be at most 2^8
-        if dimension > (1 << 8):
-            raise ValueError("Winternitz Encoding: Dimension must be at most 2^8")
+    def apply(self, parameter, epoch: int, randomness, message: bytes) -> List[int]:
+        """
+        Return `DIMENSION` base-`BASE` digits (the incomparable encoding):
+          [message_chunks || checksum_chunks]
+        """
+        # Get message chunks from the message hash
+        msg_chunks = self.message_hash.apply(parameter, epoch, randomness, message)
+        # Sanity: ensure chunk counts/base match expectations
+        assert len(msg_chunks) == self.NUM_CHAINS, "Winternitz Encoding: Unexpected message hash dimension"
+        for c in msg_chunks:
+            assert 0 <= c < self.BASE, "Winternitz Encoding: Message chunk out of range"
 
-    def __init__(self, n0: int, w_exp: int):
-        # mirror Rust's compile-time sanity checks at runtime
-        BasicWinternitzEncoding.internal_consistency_check(n0, w_exp)
+        checksum = self._checksum_chunks(msg_chunks)
+        # If checksum didn't fully consume the sum (shouldn't happen if NUM_CHECKSUM is large enough),
+        # remaining high digits are implicitly dropped (matching fixed-width representation).
+        return list(msg_chunks) + checksum
 
-        self.n0 = n0
-        self.w = 1 << w_exp
-        self.base = self.w
+    def internal_consistency_check(self):
+        # dimension bound
+        assert self.DIMENSION <= (1 << 8), "Winternitz Encoding: Dimension must be at most 2^8"
 
-        # compute checksum length n1 and total dimension v
-        checksum_bits = (n0 * (self.base - 1)).bit_length()
-        self.n1 = math.ceil(checksum_bits / w_exp)
-        self.v = n0 + self.n1
+        # chunk size constraint
+        assert self.chunk_size in (1, 2, 4, 8), "Winternitz Encoding: Chunk Size must be 1, 2, 4, or 8"
 
-    def encode(self, message: bytes) -> List[int]:
-        # Hash the message to n0 bytes
-        digest = hashlib.shake_128(message).digest(self.n0)
-        x = list(digest)
-        # ensure each chunk < BASE
-        if any(xi >= self.base for xi in x):
-            raise EncodingError("Encoded chunk too large")
+        # base consistency with message hash
+        assert getattr(self.message_hash, "BASE") == self.BASE == (1 << self.chunk_size),             "Winternitz Encoding: Base and chunk size not consistent with message hash"
 
-        # compute checksum
-        checksum = self.n0 * (self.base - 1) - sum(x)
-        c = []
-        for _ in range(self.n1):
-            c.append(checksum % self.base)
-            checksum //= self.base
-        if checksum != 0:
-            raise EncodingError("Checksum overflow")
-
-        # return message-chunks || checksum-chunks (reversed)
-        return x + c[::-1]
+        # message hash should be self-consistent
+        if hasattr(self.message_hash, "internal_consistency_check"):
+            self.message_hash.internal_consistency_check()
