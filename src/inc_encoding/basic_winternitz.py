@@ -4,7 +4,6 @@ from typing import List
 
 class EncodingError(Exception):
     pass
-
 class BasicWinternitzEncoding:
     """
     Winternitz encoding:
