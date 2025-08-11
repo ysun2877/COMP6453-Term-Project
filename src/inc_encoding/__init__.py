@@ -1,22 +1,31 @@
-# translated from src/inc_encoding.rs
+"""
+inc_encoding package: Incomparable encoding framework and Winternitz encoding variants.
+
+This package provides:
+    - Common abstract base class `IncomparableEncoding`
+    - A shared `EncodingError` exception type
+    - Concrete implementations:
+        * BasicWinternitzEncoding  (basic Winternitz message + checksum)
+        * TargetSumWinternitzEncoding (target-sum variant)
+"""
+
 from abc import ABC, abstractmethod
 from random import Random
 from typing import Protocol, Type, TypeVar, Generic, List, runtime_checkable
 
-# Import crate-wide constant
+# Import crate-wide constant from lib
 from ..lib import MESSAGE_LENGTH
 
-# ─── Error type ─────────────────────────────────────────────────────────────────
-
+# ─── Shared Error Type ─────────────────────────────────────────────────────────
 class EncodingError(Exception):
-    """Encoding failed after MAX_TRIES."""
-    def __init__(self, message):
+    """Raised when encoding fails (e.g., overflow, target-sum mismatch, max tries exceeded)."""
+    def __init__(self, message: str):
         super().__init__(message)
 
-# ─── Type variables for parameters & randomness ─────────────────────────────────
-# 1) Define a simple Protocol for “serializable” objects.
+# ─── Serializable Protocol ─────────────────────────────────────────────────────
 @runtime_checkable
 class Serializable(Protocol):
+    """Protocol for serializable objects used as Parameters and Randomness."""
     def to_bytes(self) -> bytes:
         """Serialize self to bytes."""
         ...
@@ -25,25 +34,31 @@ class Serializable(Protocol):
         """Deserialize from bytes."""
         ...
 
-# 2) Now bind our Parameter & Randomness type variables to that Protocol.
+# ─── Type variables for generic Parameters & Randomness ────────────────────────
 P = TypeVar("P", bound=Serializable)
 R = TypeVar("R", bound=Serializable)
 
-
-# ─── Base trait → abstract base class ──────────────────────────────────────────
-
+# ─── Abstract Base Class for Incomparable Encodings ─────────────────────────────
 class IncomparableEncoding(ABC, Generic[P, R]):
     """
-    Encode a fixed-length MESSAGE_LENGTH byte string
-    into an integer vector of length DIMENSION with entries in 0..BASE-1,
-    such that no two distinct codewords are pointwise comparable.
+    Encode a fixed-length MESSAGE_LENGTH byte string into an integer vector of
+    length DIMENSION with entries in [0, BASE-1], such that no two distinct
+    codewords are pointwise comparable.
+
+    This is a direct translation of the Rust trait:
+        trait IncomparableEncoding {
+            const DIMENSION: usize;
+            const MAX_TRIES: usize;
+            const BASE: usize;
+
+            fn rand<R: Rng>(rng: &mut R) -> Self::Randomness;
+            fn encode(...) -> Result<Vec<u8>, EncodingError>;
+        }
     """
 
-    # translate Rust’s `const DIMENSION: usize;`
+    # Constants (class attributes in Python)
     DIMENSION: int
-    # `const MAX_TRIES: usize;`
     MAX_TRIES: int
-    # `const BASE: usize;`
     BASE: int
 
     @classmethod
@@ -51,7 +66,8 @@ class IncomparableEncoding(ABC, Generic[P, R]):
     def rand(cls, rng: Random) -> R:
         """
         Sample randomness for encode().
-        Mirrors Rust’s `fn rand<R: Rng>(rng: &mut R) -> Self::Randomness`.
+        Mirrors Rust's:
+            fn rand<R: Rng>(rng: &mut R) -> Self::Randomness
         """
         ...
 
@@ -65,21 +81,35 @@ class IncomparableEncoding(ABC, Generic[P, R]):
         epoch: int
     ) -> List[int]:
         """
-        Mirrors Rust’s:
-          fn encode(
-            parameter: &Self::Parameter,
-            message: &[u8; MESSAGE_LENGTH],
-            randomness: &Self::Randomness,
-            epoch: u32,
-          ) -> Result<Vec<u8>, EncodingError>;
+        Encode the given message and associated randomness into a vector of digits.
+        Mirrors Rust's:
+            fn encode(
+                parameter: &Self::Parameter,
+                message: &[u8; MESSAGE_LENGTH],
+                randomness: &Self::Randomness,
+                epoch: u32,
+            ) -> Result<Vec<u8>, EncodingError>
         """
         ...
 
     @classmethod
     def internal_consistency_check(cls) -> None:
         """
-        Test-only consistency checks (panics in Rust under `#[cfg(test)]`).
-        Python version can raise AssertionError if something’s wrong.
+        Optional: Run test-only consistency checks.
+        In Rust, this would panic under #[cfg(test)] if any invariant is broken.
+        In Python, raises AssertionError instead.
         """
-from .basic_winternitz import BasicWinternitzEncoding, EncodingError
-from .target_sum      import TargetSumWinternitzEncoding
+        ...
+
+# ─── Concrete Implementations ──────────────────────────────────────────────────
+from .basic_winternitz import BasicWinternitzEncoding
+from .target_sum import TargetSumWinternitzEncoding
+
+# ─── Public API ────────────────────────────────────────────────────────────────
+__all__ = [
+    "EncodingError",
+    "Serializable",
+    "IncomparableEncoding",
+    "BasicWinternitzEncoding",
+    "TargetSumWinternitzEncoding",
+]
