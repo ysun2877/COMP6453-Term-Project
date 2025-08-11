@@ -10,8 +10,8 @@ import os
 import math
 
 # Constants
-TWEAK_SEPARATOR_FOR_CHAIN_HASH = 0x01
-TWEAK_SEPARATOR_FOR_TREE_HASH = 0x02
+from ...lib import TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH
+
 
 # BabyBear prime modulus (Plonky3 BabyBear): 2^31 - 2^27 + 1
 P_BABYBEAR = 2_013_265_921

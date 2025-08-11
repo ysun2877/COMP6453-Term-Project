@@ -10,8 +10,7 @@ import os
 import random
 
 # Constants
-TWEAK_SEPARATOR_FOR_CHAIN_HASH = 0x01
-TWEAK_SEPARATOR_FOR_TREE_HASH = 0x02
+from ...lib import TWEAK_SEPARATOR_FOR_CHAIN_HASH, TWEAK_SEPARATOR_FOR_TREE_HASH
 
 def _to_be_bytes(x: int, length: int) -> bytes:
     """Convert integer to big-endian bytes."""
