@@ -1,106 +1,130 @@
-from abc import ABC, abstractmethod
-from random import Random
-from typing import Generic, TypeVar, Tuple
+from __future__ import annotations
+from dataclasses import dataclass
+from typing import Any, Protocol, Tuple, TypeVar, ClassVar, runtime_checkable
+import os
+import pickle
 
-# pull in the shared MESSAGE_LENGTH constant
-from ..lib import MESSAGE_LENGTH
+from ..lib import MESSAGE_LENGTH  
 
-# import our Serializable protocol (defined in inc_encoding/__init__.py)
-from ..inc_encoding import Serializable
-
-# ─── Associated‐type placeholders ───────────────────────────────────────────────
-# In Rust: type PublicKey: Serialize + DeserializeOwned; etc.
-PK = TypeVar("PK", bound=Serializable)
-SK = TypeVar("SK", bound=Serializable)
-SG = TypeVar("SG", bound=Serializable)
-
-
-# ─── Error enum → Python exceptions ──────────────────────────────────────────────
+# -----------------------------
+# Errors (Rust: enum SigningError)
+# -----------------------------
 
 class SigningError(Exception):
-    """Base class for all signature‐scheme errors."""
+    """Base class for signature-scheme errors."""
     INVALID_MESSAGE_LENGTH = "Invalid message length"
     UNLUCKY_FAILURE = "Unlucky failure"
 
-    def __init__(self, message):
-        super().__init__(message)
-
-
 class InvalidMessageLength(SigningError):
     """Raised if `message` is not exactly MESSAGE_LENGTH bytes."""
-    def __init__(self):
-        super().__init__(SigningError.INVALID_MESSAGE_LENGTH)
-
+    pass
 
 class UnluckyFailure(SigningError):
     """Raised if signing fails after all random retries."""
-    def __init__(self):
-        super().__init__(SigningError.UNLUCKY_FAILURE)
+    pass
 
 
-# ─── SignatureScheme trait → Python ABC ──────────────────────────────────────────
+# -----------------------------
+# SignatureScheme protocol (Rust: trait SignatureScheme)
+# -----------------------------
 
-class SignatureScheme(ABC, Generic[PK, SK, SG]):
+PK = TypeVar("PK")
+SK = TypeVar("SK")
+SIG = TypeVar("SIG")
+
+@runtime_checkable
+class SignatureScheme(Protocol[PK, SK, SIG]):
     """
-    Synchronized signature scheme over discrete epochs.
-    One signature per (secret key, epoch) pair.
+    Models a synchronized signature scheme that signs with respect to discrete epochs.
+    Each epoch can be used at most once for signing with a given key.
+
+    Implementations are defined as concrete classes (not instances) with fixed
+    class-level parameters and all primary operations exposed as classmethods.
+
+    Class attributes:
+    - LIFETIME: int        # total number of supported epochs (must be a power of two)
+    - LOG_LIFETIME: int    # log2(LIFETIME)
+    - PRF: Pseudorandom    # instance of the PRF implementation
+    - IE: IncomparableEncoding
+    - TH: TweakableHash
+
+    Methods (all @classmethod):
+    - key_gen(cls, rng, activation_epoch: int, num_active_epochs: int) -> (PK, SK)
+        Generate a fresh (public, secret) key pair valid for epochs
+        activation_epoch .. activation_epoch + num_active_epochs - 1.
+
+    - sign(cls, rng, sk: SK, epoch: int, message: bytes) -> SIG
+        Sign a fixed-length message for the given epoch.
+        Should raise SigningError on failure (InvalidMessageLength, UnluckyFailure).
+
+    - verify(cls, pk: PK, epoch: int, message: bytes, sig: SIG) -> bool
+        Verify that the signature is valid for the given public key, epoch, and message.
+
+    - internal_consistency_check(cls) -> None
+        (Optional) Raise AssertionError if any scheme-specific invariants are violated.
     """
-
-    #: total number of epochs supported by one key (must be a power of two)
-    LIFETIME: int
-
-    @classmethod
-    @abstractmethod
-    def key_gen(
-        cls,
-        rng: Random,
-        activation_epoch: int,
-        num_active_epochs: int,
-    ) -> Tuple[PK, SK]:
-        """
-        Generate a fresh (public, secret) key pair.
-        Valid for epochs
-          activation_epoch .. activation_epoch + num_active_epochs - 1.
-        """
+    LIFETIME: ClassVar[int]
+    LOG_LIFETIME: ClassVar[int]
 
     @classmethod
-    @abstractmethod
-    def sign(
-        cls,
-        rng: Random,
-        sk: SK,
-        epoch: int,
-        message: bytes,
-    ) -> SG:
-        """
-        Sign a fixed-length message for `epoch`.
-        Raises:
-          - InvalidMessageLength
-          - UnluckyFailure
-        """
-
+    def key_gen(cls, activation_epoch: int, num_active_epochs: int, rng: Any) -> Tuple[PK, SK]: ...
     @classmethod
-    @abstractmethod
-    def verify(
-        cls,
-        pk: PK,
-        epoch: int,
-        message: bytes,
-        signature: SG,
-    ) -> bool:
-        """
-        Check that `signature` is valid for `pk`, `epoch`, and `message`.
-        """
-
+    def sign(cls, sk: SK, epoch: int, message: bytes, rng: Any) -> SIG: ...
     @classmethod
-    def internal_consistency_check(cls) -> None:
-        """
-        (Optional; test-only)
-        Raise AssertionError if any invariants break.
-        """
-        pass
+    def verify(cls, pk: PK, epoch: int, message: bytes, sig: SIG) -> bool: ...
+    @classmethod
+    def internal_consistency_check(cls) -> None: ...
+
+# -----------------------------
+# Test template (mirror of Rust test_templates)
+# -----------------------------
+
+def test_signature_scheme_correctness(
+    scheme_factory,
+    epoch: int,
+    activation_epoch: int,
+    num_active_epochs: int,
+):
+    """
+    Generic test for any implementation of SignatureScheme.
+    - Generates a key pair
+    - Signs a random message
+    - Verifies the signature
+    - Checks pickle round-trip consistency for pk/sk/sig (serde/bincode analog)
+    """
+    # Rust used rand::rng(); here we provide an OS-backed RNG adapter
+    class ThreadRng:
+        def randbytes(self, n: int) -> bytes:
+            return os.urandom(n)
+
+    rng = ThreadRng()
+
+    # Build scheme and run keygen
+    scheme: SignatureScheme = scheme_factory()
+    pk, sk = scheme.key_gen(activation_epoch, num_active_epochs, rng)
+
+    # Random message of fixed length
+    message = os.urandom(MESSAGE_LENGTH)
+    if len(message) != MESSAGE_LENGTH:
+        raise InvalidMessageLength(SigningError.INVALID_MESSAGE_LENGTH)
+
+    # Sign (raise on failure) and verify
+    sig = scheme.sign(sk, epoch, message,rng)
+    assert scheme.verify(pk, epoch, message, sig), f"Signature verification failed. Epoch was {epoch}"
+
+    # Pickle round-trip (bincode serde analog)
+    def round_trip_ok(x: Any) -> bool:
+        blob = pickle.dumps(x, protocol=pickle.HIGHEST_PROTOCOL)
+        y = pickle.loads(blob)
+        return pickle.dumps(y, protocol=pickle.HIGHEST_PROTOCOL) == blob
+
+    assert round_trip_ok(pk), "Serde consistency check failed for PK"
+    assert round_trip_ok(sk), "Serde consistency check failed for SK"
+    assert round_trip_ok(sig), "Serde consistency check failed for SIG"
 
 
-# ─── Submodule declaration ──────────────────────────────────────────────────────
-# mirrors: `pub mod generalized_xmss;`
+# -----------------------------
+# Module exports (Rust: pub mod generalized_xmss)
+# -----------------------------
+
 from .generalized_xmss import *

@@ -36,9 +36,12 @@ def measure_time(description: str, scheme_factory: Callable[[], object], rng: Os
 
     t0 = time.perf_counter()
     # Key generation should return (pk, sk); if the interface differs, adapt here.
-    _pk_sk = scheme.key_gen(rng, 0, lifetime) if lifetime is not None else scheme.key_gen(rng, 0)
+    #_pk_sk = scheme.key_gen(rng, 0, lifetime) if lifetime is not None else scheme.key_gen(rng, 0)
+    pk, sk = scheme.key_gen(0, lifetime, rng=rng)
     dt = time.perf_counter() - t0
     print(f"{description} - Gen: {dt:.6f}s")
+    
+    return pk, sk
 
 def main():
     rng = OsRng()

@@ -38,16 +38,15 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
     LOG_LIFETIME: int
 
     @classmethod
-    def key_gen(cls,
-                activation_epoch: int,
-                num_active_epochs: int
+    def key_gen(cls, activation_epoch: int, num_active_epochs: int, rng=None
                 ) -> Tuple[GeneralizedXMSSPublicKey, GeneralizedXMSSSecretKey]:
         lifetime = 1 << cls.LOG_LIFETIME
         assert activation_epoch + num_active_epochs <= lifetime, (
             "Key gen: activation_epoch + num_active_epochs exceed lifetime"
         )
 
-        rng = random.SystemRandom()
+        if rng is None:
+            rng = random.SystemRandom()
         # Parameter for tweakable hash
         parameter = cls.TH.rand_parameter(rng)
         # PRF key
@@ -93,11 +92,12 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
         return pk, sk
 
     @classmethod
-    def sign(cls,
-             sk: GeneralizedXMSSSecretKey,
-             epoch: int,
-             message: bytes
+    def sign(cls, sk: GeneralizedXMSSSecretKey, epoch: int, message: bytes, rng=None
              ) -> GeneralizedXMSSSignature:
+        
+        if rng is None:
+            rng = random.SystemRandom()
+        
         # Validate epoch
         start = sk.activation_epoch
         end = start + sk.num_active_epochs

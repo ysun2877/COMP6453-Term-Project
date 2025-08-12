@@ -82,10 +82,11 @@ def make_winternitz(lifetime_log2: int, w: int) -> GeneralizedXMSSSignatureSchem
     class Scheme(GeneralizedXMSSSignatureScheme):
         pass
 
-    Scheme.PRF=prf,
-    Scheme.IE=ie,
-    Scheme.TH=th,
-    Scheme.LOG_LIFETIME=lifetime_log2,
+    Scheme.PRF=prf
+    Scheme.IE=ie
+    Scheme.TH=th
+    Scheme.LOG_LIFETIME=lifetime_log2
+    Scheme.LIFETIME = 1 << Scheme.LOG_LIFETIME
     return Scheme
 
 def make_target_sum(lifetime_log2: int, w: int, offset10: bool=False) -> GeneralizedXMSSSignatureScheme:
@@ -101,10 +102,11 @@ def make_target_sum(lifetime_log2: int, w: int, offset10: bool=False) -> General
     class Scheme(GeneralizedXMSSSignatureScheme):
         pass
 
-    Scheme.PRF=prf,
-    Scheme.IE=ie,
-    Scheme.TH=th,
-    Scheme.LOG_LIFETIME=lifetime_log2,
+    Scheme.PRF=prf
+    Scheme.IE=ie
+    Scheme.TH=th
+    Scheme.LOG_LIFETIME=lifetime_log2
+    Scheme.LIFETIME = 1 << Scheme.LOG_LIFETIME
     return Scheme
 
 # Convenient pre-bound constructors mirroring Rust type aliases
