@@ -5,7 +5,7 @@ from typing import Type, List, Tuple
 from ...signature import SignatureScheme, SigningError
 from ...inc_encoding import IncomparableEncoding
 from ...symmetric.prf import Pseudorandom
-from ...symmetric.tweak_hash import TweakableHash, chain, tree_tweak
+from ...symmetric.tweak_hash import TweakableHash, chain
 from ...symmetric.tweak_hash_tree import HashTree, HashTreeOpening, hash_tree_verify
 
 @dataclass

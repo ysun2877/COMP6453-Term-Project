@@ -19,12 +19,12 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from inc_encoding.basic_winternitz import WinternitzEncoding
-from inc_encoding.target_sum import TargetSumEncoding
-from symmetric.message_hash.poseidon import PoseidonMessageHash
-from symmetric.prf.shake_to_field import ShakePRFtoF
-from symmetric.tweak_hash.poseidon import PoseidonTweakHash
-from signature.generalized_xmss import GeneralizedXMSSSignatureScheme
+from ...inc_encoding.basic_winternitz import WinternitzEncoding
+from ...inc_encoding.target_sum import TargetSumEncoding
+from ...symmetric.message_hash.poseidon import PoseidonMessageHash
+from ...symmetric.prf.shake_to_field import ShakePRFtoF
+from ...symmetric.tweak_hash.poseidon import PoseidonTweakHash
+from ...signature.generalized_xmss import GeneralizedXMSSSignatureScheme
 
 # Shared Poseidon/XMSS constants (mirroring Rust)
 PARAMETER_LEN = 5
@@ -54,20 +54,21 @@ def _build_shared(w: int):
     # Components parameterized by w
     mh = PoseidonMessageHash(
         parameter_len=PARAMETER_LEN,
-        rand_len=RAND_LEN,
-        msg_hash_len_fe=MSG_HASH_LEN_FE,
-        num_chains=NUM_CHAINS[w],
+        rand_len_fe=RAND_LEN,
+        hash_len_fe=MSG_HASH_LEN_FE,
+        dimension=NUM_CHAINS[w],
         base=BASE[w],
         tweak_len_fe=TWEAK_LEN_FE,
+        msg_len_fe=MSG_LEN_FE,
     )
     th = PoseidonTweakHash(
         parameter_len=PARAMETER_LEN,
-        hash_len_fe=HASH_LEN_FE[w],
-        tweak_len_fe=TWEAK_LEN_FE,
+        hash_len=HASH_LEN_FE[w],
+        tweak_len=TWEAK_LEN_FE,
         capacity=CAPACITY,
-        num_chains=NUM_CHAINS[w],
+        num_chunks=NUM_CHAINS[w],
     )
-    prf = ShakePRFtoF(output_len_fe=HASH_LEN_FE[w])
+    prf = ShakePRFtoF(output_length_fe=HASH_LEN_FE[w])
     return mh, th, prf
 
 def make_winternitz(lifetime_log2: int, w: int) -> GeneralizedXMSSSignatureScheme:
@@ -78,12 +79,14 @@ def make_winternitz(lifetime_log2: int, w: int) -> GeneralizedXMSSSignatureSchem
         chunk_size=CHUNK_SIZE[w],
         num_checksum_chains=NUM_CHECKSUM_CHAINS[w],
     )
-    return GeneralizedXMSSSignatureScheme(
-        prf=prf,
-        encoding=ie,
-        tweak_hash=th,
-        log_lifetime=lifetime_log2,
-    )
+    class Scheme(GeneralizedXMSSSignatureScheme):
+        pass
+
+    Scheme.PRF=prf,
+    Scheme.IE=ie,
+    Scheme.TH=th,
+    Scheme.LOG_LIFETIME=lifetime_log2,
+    return Scheme
 
 def make_target_sum(lifetime_log2: int, w: int, offset10: bool=False) -> GeneralizedXMSSSignatureScheme:
     """Factory for Target-Sum-encoded Poseidon-based XMSS (lifetime 2^lifetime_log2, w in {1,2,4,8}).
@@ -95,12 +98,14 @@ def make_target_sum(lifetime_log2: int, w: int, offset10: bool=False) -> General
         message_hash=mh,
         target_sum=target,
     )
-    return GeneralizedXMSSSignatureScheme(
-        prf=prf,
-        encoding=ie,
-        tweak_hash=th,
-        log_lifetime=lifetime_log2,
-    )
+    class Scheme(GeneralizedXMSSSignatureScheme):
+        pass
+
+    Scheme.PRF=prf,
+    Scheme.IE=ie,
+    Scheme.TH=th,
+    Scheme.LOG_LIFETIME=lifetime_log2,
+    return Scheme
 
 # Convenient pre-bound constructors mirroring Rust type aliases
 def SIGWinternitzLifetime18W1(): return make_winternitz(18, 1)
