@@ -29,9 +29,9 @@ def measure_time(description: str, scheme_factory: Callable[[], object], rng: Os
     # The Rust code calls: T::key_gen(rng, 0, T::LIFETIME as usize)
     # In Python we expect: scheme.key_gen(rng, start_epoch=0, lifetime=scheme.lifetime or scheme.log_lifetime)
     # We'll try to read the exposed lifetime; else, fall back to 1 << scheme.log_lifetime.
-    lifetime = getattr(scheme, "lifetime", None)
+    lifetime = getattr(scheme, "LIFETIME", None)
     if lifetime is None:
-        log_L = getattr(scheme, "log_lifetime", None)
+        log_L = getattr(scheme, "LOG_LIFETIME", None)
         lifetime = (1 << log_L) if isinstance(log_L, int) else None
     if lifetime is None:
         raise ValueError("lifetime is not defined")
@@ -74,8 +74,9 @@ def main():
         ("Poseidon - L 20 - Target Sum - w 8", SIGTargetSumLifetime20W8NoOff),
     ]
 
-    for desc, factory in benches:
-        measure_time(desc, factory, rng)
+    # for desc, factory in benches:
+    #     measure_time(desc, factory, rng)
+    measure_time("Poseidon - L 18 - Winternitz - w 1", SIGWinternitzLifetime18W1, rng)
 
 if __name__ == "__main__":
     main()

@@ -51,14 +51,18 @@ def _poseidon2_compress_emulated(fe_list: Sequence[int], width: int, out_len: in
     """Emulate Poseidon2 compression using SHAKE128 as a KDF over canonical field bytes, then map to field elements.
     NOTE: This is NOT cryptographically equivalent to Poseidon2. Replace with a real Poseidon2 over BabyBear if available.
     """
+    assert len(fe_list) >= out_len, (
+        "Poseidon Compression: input length must be at least output length.")
     shake = hashlib.shake_128()
     for fe in fe_list:
         # 8-byte little-endian is enough to encode BabyBear elements (< 2^31)
         shake.update(_to_le_bytes(fe % P_BABYBEAR, 8))
     
-    # Pad to width if needed
-    while len(fe_list) < width:
-        shake.update(b"\x00")
+    # Zero-pad to 'width' elements exactly once (like copying into a [F; WIDTH] buffer)
+    pad = max(0, width - len(fe_list))
+    if pad:
+        # one zero marker per missing limb
+        shake.update(b"\x00" * pad)
     
     out = []
     for _ in range(out_len):

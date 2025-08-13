@@ -6,7 +6,7 @@ from ...signature import SignatureScheme, SigningError
 from ...inc_encoding import IncomparableEncoding
 from ...symmetric.prf import Pseudorandom
 from ...symmetric.tweak_hash import TweakableHash, chain
-from ...symmetric.tweak_hash_tree import HashTree, HashTreeOpening, hash_tree_verify
+from ...symmetric.tweak_hash_tree import HashTree, HashTreeOpening, HashTreeBuilder, hash_tree_verify
 
 @dataclass
 class GeneralizedXMSSSignature:
@@ -74,14 +74,15 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
             leaf = cls.TH.apply(parameter, cls.TH.tree_tweak(0, epoch), ends)
             chain_ends_hashes.append(leaf)
 
-        tree = HashTree.new(
+        builder = HashTreeBuilder(cls.TH)
+        tree = builder.new(
             rng,
             cls.LOG_LIFETIME,
             activation_epoch,
             parameter,
             chain_ends_hashes
         )
-        root = tree.root()
+        root = HashTreeBuilder.root(tree)
 
         pk = GeneralizedXMSSPublicKey(root=root, parameter=parameter)
         sk = GeneralizedXMSSSecretKey(
@@ -106,7 +107,8 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
         if not (start <= epoch < end):
             raise AssertionError("Signing: key not active for this epoch")
 
-        path = sk.tree.path(epoch)
+        path = HashTreeBuilder.path(sk.tree, epoch)
+        # path = sk.tree.path(epoch)
 
         # Incomparable encoding
         max_tries = cls.IE.MAX_TRIES
@@ -175,12 +177,16 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
             )
             ends.append(end)
 
+        # build leaf from chain end
+        leaf = cls.TH.apply(pk.parameter, cls.TH.tree_tweak(0, epoch), ends)
+
         return hash_tree_verify(
-            pk.parameter,
-            pk.root,
-            epoch,
-            ends,
-            sig.path
+            th_impl=cls.TH,
+            parameter=pk.parameter,
+            root=pk.root,
+            position=epoch,
+            leaf=leaf,
+            opening=sig.path
         )
 
     @classmethod
