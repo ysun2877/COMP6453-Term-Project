@@ -76,7 +76,8 @@ def main():
 
     # for desc, factory in benches:
     #     measure_time(desc, factory, rng)
-    measure_time("Poseidon - L 18 - Winternitz - w 1", SIGWinternitzLifetime18W1, rng)
+    measure_time("Poseidon - L 18 - Target Sum - w 1", SIGTargetSumLifetime18W1NoOff,rng)
+
 
 if __name__ == "__main__":
     main()

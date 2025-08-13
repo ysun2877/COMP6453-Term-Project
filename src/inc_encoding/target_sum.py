@@ -25,11 +25,11 @@ class TargetSumEncoding:
 
     @property
     def BASE(self) -> int:
-        return int(getattr(self.message_hash, "BASE"))
+        return int(getattr(self.message_hash, "base"))
 
     @property
     def DIMENSION(self) -> int:
-        return int(getattr(self.message_hash, "DIMENSION"))
+        return int(getattr(self.message_hash, "dimension"))
 
     def apply(self, parameter: Any, epoch: int, randomness: Any, message: bytes) -> List[int]:
         """
