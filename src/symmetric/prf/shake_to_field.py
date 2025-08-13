@@ -23,18 +23,20 @@ class ShakePRFtoF:
     """
     output_length_fe: int
 
-    @staticmethod
-    def key_gen(rng) -> bytes:
+    @classmethod
+    def key_gen(cls,rng) -> bytes:
         """Generate a random 32-byte key."""
         rb = getattr(rng, "randbytes", None)
         if rb is None:
             return os.urandom(KEY_LENGTH)
         return rb(KEY_LENGTH)
 
-    @staticmethod
-    def _to_field_elements(raw: bytes, out_len_fe: int) -> List[int]:
+    @classmethod
+    def _to_field_elements(cls, raw: bytes, out_len_fe: int) -> List[int]:
         """Map raw bytes to field elements by grouping into PRF_BYTES_PER_FE chunks, big-endian, then mod p."""
         out = []
+        if out_len_fe == None:
+            out_len_fe = cls.output_length_fe
         for i in range(out_len_fe):
             start = i * PRF_BYTES_PER_FE
             end = start + PRF_BYTES_PER_FE
@@ -44,12 +46,15 @@ class ShakePRFtoF:
             out.append(val)
         return out
 
-    @staticmethod
-    def apply(key: bytes, epoch: int, index: int, *, output_length_fe: int) -> List[int]:
+    @classmethod
+    def apply(cls, key: bytes, epoch: int, index: int, output_length_fe: int) -> List[int]:
         """Apply SHAKE128 keyed by domain-sep || key || epoch_be || index_be, return `output_length_fe` BabyBear FEs."""
         assert isinstance(key, (bytes, bytearray)) and len(key) == KEY_LENGTH
         assert 0 <= epoch < (1 << 32)
         assert 0 <= index < (1 << 64)
+
+        if output_length_fe == None:
+            output_length_fe = cls.output_length_fe
         # SHAKE128 XOF
         shake = hashlib.shake_128()
         shake.update(PRF_DOMAIN_SEP)
@@ -59,8 +64,8 @@ class ShakePRFtoF:
         raw = shake.digest(PRF_BYTES_PER_FE * output_length_fe)
         return ShakePRFtoF._to_field_elements(raw, output_length_fe)
 
-    @staticmethod
-    def internal_consistency_check() -> None:
+    @classmethod
+    def internal_consistency_check(cls) -> None:
         # No additional param checks needed here (mirrors Rust comment)
         return None
 

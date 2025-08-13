@@ -36,6 +36,7 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
     IE: Type[IncomparableEncoding]
     TH: Type[TweakableHash]
     LOG_LIFETIME: int
+    LIFETIME: int
 
     @classmethod
     def key_gen(cls, activation_epoch: int, num_active_epochs: int, rng=None
@@ -59,14 +60,15 @@ class GeneralizedXMSSSignatureScheme(SignatureScheme):
         for epoch in range(activation_epoch, activation_epoch + num_active_epochs):
             ends = []
             for idx in range(num_chains):
-                start = cls.PRF.apply(prf_key, epoch, idx).into()
+                start = cls.PRF.apply(key=prf_key, epoch=epoch, index=idx, output_length_fe=cls.PRF.output_length_fe)
                 end = chain(
                     parameter,
                     epoch,
                     idx,
                     0,
                     chain_length - 1,
-                    start
+                    start,
+                    th_class=cls.TH
                 )
                 ends.append(end)
             leaf = cls.TH.apply(parameter, cls.TH.tree_tweak(0, epoch), ends)

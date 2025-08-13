@@ -33,6 +33,8 @@ def measure_time(description: str, scheme_factory: Callable[[], object], rng: Os
     if lifetime is None:
         log_L = getattr(scheme, "log_lifetime", None)
         lifetime = (1 << log_L) if isinstance(log_L, int) else None
+    if lifetime is None:
+        raise ValueError("lifetime is not defined")
 
     t0 = time.perf_counter()
     # Key generation should return (pk, sk); if the interface differs, adapt here.
@@ -40,7 +42,7 @@ def measure_time(description: str, scheme_factory: Callable[[], object], rng: Os
     pk, sk = scheme.key_gen(0, lifetime, rng=rng)
     dt = time.perf_counter() - t0
     print(f"{description} - Gen: {dt:.6f}s")
-    
+
     return pk, sk
 
 def main():

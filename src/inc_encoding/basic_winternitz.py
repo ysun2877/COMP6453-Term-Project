@@ -28,7 +28,7 @@ class WinternitzEncoding:
     @property
     def NUM_CHAINS(self) -> int:
         # number of message chains equals MH.DIMENSION
-        return int(getattr(self.message_hash, "DIMENSION"))
+        return int(getattr(self.message_hash, "dimension"))
 
     @property
     def DIMENSION(self) -> int:

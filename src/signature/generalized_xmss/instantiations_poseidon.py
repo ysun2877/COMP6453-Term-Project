@@ -85,7 +85,7 @@ def make_winternitz(lifetime_log2: int, w: int) -> GeneralizedXMSSSignatureSchem
     Scheme.PRF=prf
     Scheme.IE=ie
     Scheme.TH=th
-    Scheme.LOG_LIFETIME=lifetime_log2
+    Scheme.LOG_LIFETIME=int(lifetime_log2)
     Scheme.LIFETIME = 1 << Scheme.LOG_LIFETIME
     return Scheme
 
@@ -105,7 +105,7 @@ def make_target_sum(lifetime_log2: int, w: int, offset10: bool=False) -> General
     Scheme.PRF=prf
     Scheme.IE=ie
     Scheme.TH=th
-    Scheme.LOG_LIFETIME=lifetime_log2
+    Scheme.LOG_LIFETIME=int(lifetime_log2)
     Scheme.LIFETIME = 1 << Scheme.LOG_LIFETIME
     return Scheme
 
@@ -137,3 +137,13 @@ def SIGTargetSumLifetime20W4NoOff(): return make_target_sum(20, 4, False)
 def SIGTargetSumLifetime20W4Off10(): return make_target_sum(20, 4, True)
 def SIGTargetSumLifetime20W8NoOff(): return make_target_sum(20, 8, False)
 def SIGTargetSumLifetime20W8Off10(): return make_target_sum(20, 8, True)
+
+scheme1=SIGWinternitzLifetime18W1()
+print("PRF:",scheme1.PRF)
+print("IE:",scheme1.IE)
+print("TH:",scheme1.TH)
+print("logtime:",scheme1.LOG_LIFETIME)
+print("LIFETIME:",scheme1.LIFETIME)
+pk, sk = scheme1.key_gen(0, scheme1.LIFETIME)
+print("pk",pk)
+print("sk",sk)

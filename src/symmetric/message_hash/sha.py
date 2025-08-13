@@ -26,7 +26,7 @@ def bytes_to_chunks(data: bytes, chunk_size: int) -> List[int]:
             buf_bits -= chunk_size
     return out
 
-from ..tweak_hash.poseidon import TWEAK_SEPARATOR_FOR_MESSAGE_HASH
+from ...lib import TWEAK_SEPARATOR_FOR_MESSAGE_HASH
 
 @dataclass(frozen=True)
 class ShaMessageHash:
