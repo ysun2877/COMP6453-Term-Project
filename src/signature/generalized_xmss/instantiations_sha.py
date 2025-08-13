@@ -59,23 +59,30 @@ def make_winternitz(lifetime_log2: int, w: int) -> GeneralizedXMSSSignatureSchem
         chunk_size=CHUNK_SIZE[w],
         num_checksum_chains=WINTERNITZ_NUM_CHECKSUM_CHAINS,
     )
-    return GeneralizedXMSSSignatureScheme(
-        prf=prf,
-        encoding=ie,
-        tweak_hash=th,
-        log_lifetime=lifetime_log2,
-    )
+    class Scheme(GeneralizedXMSSSignatureScheme):
+        pass
+
+    Scheme.PRF=prf
+    Scheme.IE=ie
+    Scheme.TH=th
+    Scheme.LOG_LIFETIME=int(lifetime_log2)
+    Scheme.LIFETIME = 1 << Scheme.LOG_LIFETIME
+    return Scheme
 
 def make_target_sum(lifetime_log2: int, w: int, offset10: bool=False) -> GeneralizedXMSSSignatureScheme:
     mh, th, prf = _build_shared(w)
     target = TARGET_SUM_OFF10[w] if offset10 else TARGET_SUM_NO_OFF[w]
     ie = TargetSumEncoding(message_hash=mh, target_sum=target)
-    return GeneralizedXMSSSignatureScheme(
-        prf=prf,
-        encoding=ie,
-        tweak_hash=th,
-        log_lifetime=lifetime_log2,
-    )
+    
+    class Scheme(GeneralizedXMSSSignatureScheme):
+        pass
+
+    Scheme.PRF=prf
+    Scheme.IE=ie
+    Scheme.TH=th
+    Scheme.LOG_LIFETIME=int(lifetime_log2)
+    Scheme.LIFETIME = 1 << Scheme.LOG_LIFETIME
+    return Scheme
 
 # Convenience functions mirroring Rust type aliases
 def SIGWinternitzLifetime18W1(): return make_winternitz(18,1)

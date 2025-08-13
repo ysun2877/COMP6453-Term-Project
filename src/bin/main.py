@@ -50,28 +50,28 @@ def main():
 
     benches = [
         # Lifetime 2^18 - Winternitz
-        ("Poseidon - L 18 - Winternitz - w 1", SIGWinternitzLifetime18W1),
-        ("Poseidon - L 18 - Winternitz - w 2", SIGWinternitzLifetime18W2),
-        ("Poseidon - L 18 - Winternitz - w 4", SIGWinternitzLifetime18W4),
-        ("Poseidon - L 18 - Winternitz - w 8", SIGWinternitzLifetime18W8),
+        ("Poseidon - L 10 - Winternitz - w 1", SIGWinternitzLifetime18W1),
+        ("Poseidon - L 10 - Winternitz - w 2", SIGWinternitzLifetime18W2),
+        ("Poseidon - L 10 - Winternitz - w 4", SIGWinternitzLifetime18W4),
+        #("Poseidon - L 18 - Winternitz - w 8", SIGWinternitzLifetime18W8),
 
         # Lifetime 2^18 - Target Sum (NoOff)
-        ("Poseidon - L 18 - Target Sum - w 1", SIGTargetSumLifetime18W1NoOff),
-        ("Poseidon - L 18 - Target Sum - w 2", SIGTargetSumLifetime18W2NoOff),
-        ("Poseidon - L 18 - Target Sum - w 4", SIGTargetSumLifetime18W4NoOff),
-        ("Poseidon - L 18 - Target Sum - w 8", SIGTargetSumLifetime18W8NoOff),
+        ("Poseidon - L 10 - Target Sum - w 1", SIGTargetSumLifetime18W1NoOff),
+        ("Poseidon - L 10 - Target Sum - w 2", SIGTargetSumLifetime18W2NoOff),
+        ("Poseidon - L 10 - Target Sum - w 4", SIGTargetSumLifetime18W4NoOff),
+        #("Poseidon - L 18 - Target Sum - w 8", SIGTargetSumLifetime18W8NoOff),
 
         # Lifetime 2^20 - Winternitz
-        ("Poseidon - L 20 - Winternitz - w 1", SIGWinternitzLifetime20W1),
-        ("Poseidon - L 20 - Winternitz - w 2", SIGWinternitzLifetime20W2),
-        ("Poseidon - L 20 - Winternitz - w 4", SIGWinternitzLifetime20W4),
-        ("Poseidon - L 20 - Winternitz - w 8", SIGWinternitzLifetime20W8),
+        ("Poseidon - L 12 - Winternitz - w 1", SIGWinternitzLifetime20W1),
+        ("Poseidon - L 12 - Winternitz - w 2", SIGWinternitzLifetime20W2),
+        ("Poseidon - L 12 - Winternitz - w 4", SIGWinternitzLifetime20W4),
+        #("Poseidon - L 20 - Winternitz - w 8", SIGWinternitzLifetime20W8),
 
         # Lifetime 2^20 - Target Sum (NoOff)
-        ("Poseidon - L 20 - Target Sum - w 1", SIGTargetSumLifetime20W1NoOff),
-        ("Poseidon - L 20 - Target Sum - w 2", SIGTargetSumLifetime20W2NoOff),
-        ("Poseidon - L 20 - Target Sum - w 4", SIGTargetSumLifetime20W4NoOff),
-        ("Poseidon - L 20 - Target Sum - w 8", SIGTargetSumLifetime20W8NoOff),
+        ("Poseidon - L 12 - Target Sum - w 1", SIGTargetSumLifetime20W1NoOff),
+        ("Poseidon - L 12 - Target Sum - w 2", SIGTargetSumLifetime20W2NoOff),
+        ("Poseidon - L 12 - Target Sum - w 4", SIGTargetSumLifetime20W4NoOff),
+        #("Poseidon - L 20 - Target Sum - w 8", SIGTargetSumLifetime20W8NoOff),
     ]
 
     for desc, factory in benches:
